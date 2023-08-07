@@ -1,0 +1,11 @@
+[model]
+Name = RandLANet
+
+[save]
+SSLabel = 0,1,2
+
+[path]
+BaseData = /home/kh/Git/Repo/KhAi/0_BaseData/
+Interim = /home/kh/Git/Repo/KhAi/2_Interim/
+Result = /home/kh/Git/Repo/KhAi/3_Result/
+SS = /home/kh/Git/Repo/KhAi/1_Code/config/ # + ModelName.yml
