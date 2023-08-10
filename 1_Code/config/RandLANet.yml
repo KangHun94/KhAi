@@ -1,7 +1,7 @@
 model:
   name: RandLANet
   batcher: DefaultBatcher
-  ckpt_path: /pth/logs/
+  ckpt_path: pth/randlanet_s3dis.pth
   num_neighbors: 16
   num_layers: 5
   num_points: 40960

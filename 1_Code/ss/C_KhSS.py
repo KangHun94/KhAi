@@ -18,8 +18,9 @@ class C_KhSS:
             self.SSPipeline.load_ckpt(ckpt_path=self.CheckPointFilePath)
 
     def Run(self,Data):
+        print('Model Inference Ready')
         SSResult = self.SSPipeline.run_inference(Data)
-        self.ResultData = [{'name': 'kh','points': Data["point"], 'color':Data["feat"],'label':SSResult["predict_labels"]}]
+        self.ResultData = {'name': 'kh','points': Data["point"], 'color':Data["feat"],'label':SSResult["predict_labels"]}
 
     def Get_ResultData(self):
         return self.ResultData

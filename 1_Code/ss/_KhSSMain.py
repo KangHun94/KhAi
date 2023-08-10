@@ -16,10 +16,12 @@ def main():
     CloudPointReader = B_KhCloudPointReader(config["path"]["BaseData"],BaseDataInterimFolderPath)
 
     SS = C_KhSS()
-    SS.SettingSS(config["path"]["SS"])
+    SS.SettingSS(config['model']['Name'] ,config["path"]["SS"])
     SS.Run(CloudPointReader.Get_Data())
 
     Save = D_KhSave()
+    Save.ResultDataSave(SS.Get_ResultData(),config['save']['SSLabel'],config['path']['Result'], config['path']['Interim'],
+                      CloudPointReader.Get_ChoiceFileName() ,config['LabelToName'] ,CloudPointReader.Get_LasFileInfo())
 
 if __name__ == '__main__':
     main()
