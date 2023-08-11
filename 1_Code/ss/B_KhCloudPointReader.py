@@ -5,6 +5,7 @@ import numpy as np
 import glob
 from tqdm import tqdm
 from pathlib import Path
+import configparser
 
 class B_KhCloudPointReader:
 
@@ -26,7 +27,7 @@ class B_KhCloudPointReader:
                 self.LoadTextData(self.ChoiceDataPath)
             self.DataSave()
         else:
-            self.LoadTextData(self.ChoiceDataPath)
+            self.LoadTextData(self.ChoiceTextDataPath)
 
         #Load Bin 만든다면 함수 안에 self.LasInfo = None 써줘야함
 
@@ -64,14 +65,14 @@ class B_KhCloudPointReader:
                 blue = i
             i += 1
 
-        self.Set_LasFileInfo(LasData.points.array.dtype.names,LasData.header.offsets,LasData.header.scales)
+        self.Set_LasFileInfo(LasData.points.array,LasData.header.offsets,LasData.header.scales)
 
         LasDataArray = LasData.points.array
         Len = len(LasDataArray)
         for i in tqdm(range(Len), desc = 'Color Loading'):
-            Colors[i][0] = LasDataArray[i][red]/255.0
-            Colors[i][1] = LasDataArray[i][green]/255.0
-            Colors[i][2] = LasDataArray[i][blue]/255.0
+            Colors[i][0] = LasDataArray[i][red]/256.0
+            Colors[i][1] = LasDataArray[i][green]/256.0
+            Colors[i][2] = LasDataArray[i][blue]/256.0
 
         self.Data = {'point':Points, 'feat': Colors, 'label': np.zeros((len(Points),), dtype=np.int32)}
 
@@ -92,27 +93,54 @@ class B_KhCloudPointReader:
                 for Point in self.Data['point'][i]:
                     WriteData += format(float(Point),'.3f') + ' '
                 for Feat in self.Data['feat'][i]:
-                    WriteData += format(float(Feat),'.3f') + ' '
+                    WriteData += str(int(Feat)) + ' '
                 WriteData += '\n'
                 SaveFile.write(WriteData)
                 WriteData = ""
             SaveFile.close()
+        
+        if(self.LasInfo != None):
+            config = configparser.ConfigParser()
+            # 설정파일 오브젝트 만들기
+            config['LasInfo'] = {}
+            config['LasInfo']['intensity'] = str(self.LasInfo['intensity'])
+            config['LasInfo']['bit_fields'] = str(self.LasInfo['bit_fields'])
+            config['LasInfo']['offsetx'] = str(self.LasInfo['offset'][0])
+            config['LasInfo']['offsety'] = str(self.LasInfo['offset'][1])
+            config['LasInfo']['offsetz'] = str(self.LasInfo['offset'][2])
+            config['LasInfo']['scalesx'] = str(self.LasInfo['scales'][0])
+            config['LasInfo']['scalesy'] = str(self.LasInfo['scales'][1])
+            config['LasInfo']['scalesz'] = str(self.LasInfo['scales'][2])
+            # 설정파일 저장
+            with open(os.path.dirname(self.ChoiceTextDataPath) + "/" + Path(self.ChoiceDataPath).stem +"LasInfo.txt", 'w', encoding='utf-8') as configfile:
+                config.write(configfile)
+
 
     def Get_Data(self):
         return self.Data
     
-    def Set_LasFileInfo(self,LasDataTypeNames,OffSet,Scales):
+    def Set_LasFileInfo(self,LasDatapointsArray,OffSet,Scales):
         i = 0
-        for name in LasDataTypeNames:
+        for name in LasDatapointsArray.dtype.names:
             if(name == 'intensity'):
                 intensityNum = i
             elif(name == 'bit_fields'):
                 bit_fieldsNum = i
             i += 1
-        self.LasInfo = {'intensity':LasDataTypeNames[intensityNum],'bit_fields' : LasDataTypeNames[bit_fieldsNum],'offset':OffSet,'scales':Scales}
+        self.LasInfo = {'intensity':LasDatapointsArray[0][intensityNum],'bit_fields' : LasDatapointsArray[0][bit_fieldsNum],'offset':OffSet,'scales':Scales}
 
     def Get_LasFileInfo(self):
         if(self.LasInfo == None):
+            LasInfoFilePath = os.path.dirname(self.ChoiceTextDataPath) + "/" + Path(self.ChoiceDataPath).stem +"LasInfo.txt"
+            if(os.path.isfile(LasInfoFilePath)):
+                LasInfoConfig = configparser.ConfigParser()
+                LasInfoConfig.read(LasInfoFilePath, encoding='utf-8')
+                OffSet = np.array[float(LasInfoConfig['LasInfo']['offsetx']),float(LasInfoConfig['LasInfo']['offsety']),float(LasInfoConfig['LasInfo']['offsetz'])]
+                Scales = np.array[float(LasInfoConfig['LasInfo']['scalesx']),float(LasInfoConfig['LasInfo']['scalesy']),float(LasInfoConfig['LasInfo']['scalesz'])]
+                self.LasInfo = {'intensity':int(LasInfoConfig['LasInfo']['intensity']),
+                                'bit_fields' : int(LasInfoConfig['LasInfo']['bit_fields']),
+                                'offset':OffSet,'scales':Scales}
+                return self.LasInfo
             return None
         return self.LasInfo
 

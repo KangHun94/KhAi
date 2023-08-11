@@ -38,14 +38,16 @@ class D_KhSave:
         #분류
         IntSaveLabels, DataWithLabels = self.ClassifyDataWithLabels(ResultData,SaveLabels)
 
-        self.SavePointAccordingToLable_Las(DataWithLabels[3],ResultSavePath,3,LabelToName,LasFileInfo)
+        self.ThreadEnd = []
 
         #쓰레드 준비
         for i in IntSaveLabels:
             if(i == (len(IntSaveLabels) - 1)):
+                self.ThreadEnd.append(False)
                 SavePointAccordingToLableThreadArray.append(
                 threading.Thread(target=self.SavePointAccordingToLable_Txt,args=(DataWithLabels[len(DataWithLabels)-1],LasDataFileName,InterimSavePath)))
             else:
+                self.ThreadEnd.append(False)
                 SavePointAccordingToLableThreadArray.append(
                 threading.Thread(target=self.SavePointAccordingToLable_Las,args=(DataWithLabels[i],ResultSavePath,i,LabelToName,LasFileInfo)))
         
@@ -95,20 +97,21 @@ class D_KhSave:
         pointrecord = laspy.create(file_version="1.4", point_format=7)
         pointrecord.header.point_count = point_count
         pointrecord = laspy.create(point_format=7,file_version="1.4") 
+        points = np.ascontiguousarray(SaveDataWithLabel['points'], dtype='float32')
+        color = np.ascontiguousarray(SaveDataWithLabel['color'], dtype='uint8')*256
 
         if(LasFileInfo == None):
             intensity = 0    
             bit_fields = 0
-            pointrecord.header.offsets = [0,0,0]
+            pointrecord.header.offsets = np.floor(np.min(points,axis=1))
             pointrecord.header.scales = np.array([0.001,0.001,0.001 ], dtype=np.float32)
         else:
             intensity = LasFileInfo['intensity']
             bit_fields = LasFileInfo['bit_fields']
-            pointrecord.header.offsets = LasFileInfo['offsets']
+            pointrecord.header.offsets = LasFileInfo['offset']
             pointrecord.header.scales = LasFileInfo['scales']
 
-        points = np.array(SaveDataWithLabel['points'], dtype=np.float32)
-        color = np.array(SaveDataWithLabel['color'], dtype=np.float32)
+
         pointrecord.x = points[:,0]
         pointrecord.y = points[:,1]
         pointrecord.z = points[:,2]
@@ -119,7 +122,9 @@ class D_KhSave:
         pointrecord.red = color[:,0]
         pointrecord.green = color[:,1]
         pointrecord.blue = color[:,2]
-        pointrecord.write(ResultSavePath)  
+        pointrecord.write(ResultSavePath)
+
+        self.ThreadEnd[LabelNum] = True
 
 
     #나머지 txt로 저장할 친구들
@@ -138,4 +143,14 @@ class D_KhSave:
                 WriteData += '\n'
                 SaveFile.write(WriteData)
             SaveFile.close()
+        
+        self.ThreadEnd[len(self.ThreadEnd) - 1] = True
+
+    
+    def Get_CheckThreadEnd(self):
+        for ThreadEnd in self.ThreadEnd:
+            if(ThreadEnd == False):
+                return False
+            
+        return True
 

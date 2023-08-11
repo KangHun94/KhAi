@@ -3,6 +3,7 @@ from A_KhConfigReader import A_KhConfigReader
 from B_KhCloudPointReader import B_KhCloudPointReader
 from C_KhSS import C_KhSS
 from D_KhSave import D_KhSave
+import time
 
 def main():
     #Config File 읽어오기
@@ -22,6 +23,12 @@ def main():
     Save = D_KhSave()
     Save.ResultDataSave(SS.Get_ResultData(),config['save']['SSLabel'],config['path']['Result'], config['path']['Interim'],
                       CloudPointReader.Get_ChoiceFileName() ,config['LabelToName'] ,CloudPointReader.Get_LasFileInfo())
+    
+    while(not Save.Get_CheckThreadEnd()):
+        print("")
+        print("서브 쓰레드 종료 대기중")
+        print("")
+        time.sleep(1)
 
 if __name__ == '__main__':
     main()
