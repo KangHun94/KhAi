@@ -1,24 +1,17 @@
-
+from mmdet3d.apis import inference_detector, init_model
 
 class c_KhOD:
     def __init__(self) -> None:
         pass
 
-    def SettingOD(self,ModelName,ModelConfigPath):
-        self.ModelName = ModelName
-        self.ModelConfigPath = ModelConfigPath + self.ModelName + '.yml'
-        self.ModelConfig = _ml3d.utils.Config.load_from_file(self.ModelConfigPath)
+    def SettingOD(self,ConfigFile,CheckPointFile):
+        self.Model = init_model(ConfigFile, CheckPointFile, device='cuda:0')
 
-        if(self.ModelName == 'RandLANet'):
-            self.RandLANetModel = ml3d.models.RandLANet(**self.ModelConfig.model)
-            self.SSPipeline = ml3d.pipelines.SemanticSegmentation(self.RandLANetModel,None,device="gpu",**self.ModelConfig.pipeline)
-            self.CheckPointFilePath = ModelConfigPath + self.ModelConfig['model']['ckpt_path']
-            self.SSPipeline.load_ckpt(ckpt_path=self.CheckPointFilePath)
 
-    def Run(self,Data):
+    def Run(self,DataPath):
         print('Model Inference Ready')
-        SSResult = self.SSPipeline.run_inference(Data)
-        self.ResultData = {'name': 'kh','points': Data["point"], 'color':Data["feat"],'label':SSResult["predict_labels"]}
+        self.Result, self.Data = inference_detector(self.Model,DataPath)
 
-    def Get_ResultData(self):
-        return self.ResultData
+        self.bboxes_3d = self.Result._pred_instances_3d['bboxes_3d']
+        self.labels_3d = self.Result._pred_instances_3d['labels_3d']
+        self.scores_3d = self.Result._pred_instances_3d['scores_3d']
